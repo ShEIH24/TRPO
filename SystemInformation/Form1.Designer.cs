@@ -212,6 +212,7 @@
             this.button1.TabIndex = 12;
             this.button1.Text = "Выход";
             this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // tabPage2
             // 
@@ -320,6 +321,7 @@
             this.button7.TabIndex = 19;
             this.button7.Text = "Выход";
             this.button7.UseVisualStyleBackColor = true;
+            this.button7.Click += new System.EventHandler(this.button7_Click);
             // 
             // Form1
             // 

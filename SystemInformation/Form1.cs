@@ -127,5 +127,15 @@ namespace SystemInformation
                 textBox2.Text = "";
             }
         }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
     }
 }
