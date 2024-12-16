@@ -13,6 +13,7 @@ namespace SystemInformation
     {
         private const string UserDataFilePath = "user_data.txt";
         private int nextUserID = 1;
+        bool resultAuten = false;
 
         public bool Login(string username, string password)
         {
@@ -25,15 +26,16 @@ namespace SystemInformation
 
             // Проверяем, существует ли пользователь с указанными логином и паролем
             string[] lines = File.ReadAllLines(UserDataFilePath);
+            
             foreach (string line in lines)
             {
                 string[] parts = line.Split(',');
                 if (parts[1] == username && parts[2] == password)
                 {
-                    return true;
+                    return resultAuten = true;
                 }
             }
-            return false;
+            return resultAuten;
         }
 
         public bool Register(UserCredentials credentials)
