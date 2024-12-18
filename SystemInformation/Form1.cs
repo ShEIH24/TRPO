@@ -1,4 +1,5 @@
 ﻿using Microsoft.VisualBasic;
+using Microsoft.VisualBasic.ApplicationServices;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -14,6 +15,7 @@ namespace SystemInformation
     public partial class Form1 : Form
     {
         private AuthenticationService authService = new AuthenticationService();
+        private PersonProfile currentUser;
         public Form1()
         {
             InitializeComponent();
@@ -26,6 +28,17 @@ namespace SystemInformation
 
             if (authService.Login(username, password))
             {
+                // Получаем профиль пользователя
+                currentUser = authService.GetUserProfile(username);
+
+                // Логируем успешный вход
+                LogEntry.Log(
+                    currentUser,
+                    LogType.EmployeeAction,
+                    "Successful authentication",
+                    LogEntry.LOGIN_OPERATION
+                );
+
                 MessageBox.Show("Успешная аутентификация!");
                 // Открываем Form2
                 Form2 form2 = new Form2();
@@ -34,6 +47,12 @@ namespace SystemInformation
             }
             else
             {
+                LogEntry.Log(
+                    null,
+                    LogType.Error,
+                    $"An unsuccessful login attempt for the user {username}"
+                );
+
                 MessageBox.Show("Неверный логин или пароль.");
             }
         }
@@ -59,11 +78,29 @@ namespace SystemInformation
 
             if (authService.ResetPassword(username))
             {
+                // Получаем профиль пользователя
+                PersonProfile user = authService.GetUserProfile(username);
+
+                // Логируем смену пароля
+                LogEntry.Log(
+                    user,
+                    LogType.EmployeeAction,
+                    "Password Reset",
+                    LogEntry.STATUS_CHANGE_OPERATION
+                );
+
                 MessageBox.Show("Пароль успешно изменен.");
                 // Здесь можно добавить логику для перехода к следующей форме
             }
             else
             {
+                // Логируем неудачную попытку сброса пароля
+                LogEntry.Log(
+                    null,
+                    LogType.Error,
+                    $"An unsuccessful attempt to reset the user's password {username}"
+                );
+
                 MessageBox.Show("Пользователь не найден.");
             }
         }
@@ -93,21 +130,39 @@ namespace SystemInformation
         {
             string username = textBox3.Text;
             string password = textBox4.Text;
+            string role = comboBox1.Text;
 
             UserCredentials credentials = new UserCredentials
             {
                 Username = username,
-                Password = password
+                Password = password,
+                Role = role
             };
 
             if (authService.Register(credentials))
             {
+                PersonProfile newUser = authService.GetUserProfile(username);
+
+                LogEntry.Log(
+                    newUser,
+                    LogType.EmployeeAction,
+                    "New registration",
+                    LogEntry.STATUS_CHANGE_OPERATION
+                );
+
                 MessageBox.Show("Регистрация успешна.");
                 // Возвращаемся на первую вкладку TabControl
                 tabControl1.SelectedIndex = 0;
             }
             else
             {
+                // Логируем неудачную регистрацию
+                LogEntry.Log(
+                    null,
+                    LogType.Error,
+                    $"Failed registration attempt for the user {username}"
+                );
+
                 MessageBox.Show("Не удалось зарегистрировать пользователя.");
             }
         }
@@ -136,6 +191,11 @@ namespace SystemInformation
         private void button1_Click(object sender, EventArgs e)
         {
             this.Close();
+        }
+
+        private void label8_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

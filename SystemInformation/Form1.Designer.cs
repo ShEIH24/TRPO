@@ -52,6 +52,8 @@
             this.label6 = new System.Windows.Forms.Label();
             this.button6 = new System.Windows.Forms.Button();
             this.button7 = new System.Windows.Forms.Button();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.label8 = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -216,6 +218,8 @@
             // 
             // tabPage2
             // 
+            this.tabPage2.Controls.Add(this.label8);
+            this.tabPage2.Controls.Add(this.comboBox1);
             this.tabPage2.Controls.Add(this.button8);
             this.tabPage2.Controls.Add(this.label7);
             this.tabPage2.Controls.Add(this.label4);
@@ -277,7 +281,7 @@
             // textBox3
             // 
             this.textBox3.Font = new System.Drawing.Font("Century Gothic", 8F);
-            this.textBox3.Location = new System.Drawing.Point(418, 190);
+            this.textBox3.Location = new System.Drawing.Point(418, 165);
             this.textBox3.Name = "textBox3";
             this.textBox3.Size = new System.Drawing.Size(145, 21);
             this.textBox3.TabIndex = 23;
@@ -286,7 +290,7 @@
             // textBox4
             // 
             this.textBox4.Font = new System.Drawing.Font("Century Gothic", 8F);
-            this.textBox4.Location = new System.Drawing.Point(418, 163);
+            this.textBox4.Location = new System.Drawing.Point(418, 188);
             this.textBox4.Name = "textBox4";
             this.textBox4.Size = new System.Drawing.Size(145, 21);
             this.textBox4.TabIndex = 22;
@@ -322,6 +326,29 @@
             this.button7.Text = "Выход";
             this.button7.UseVisualStyleBackColor = true;
             this.button7.Click += new System.EventHandler(this.button7_Click);
+            // 
+            // comboBox1
+            // 
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Items.AddRange(new object[] {
+            "Администратор",
+            "Диспетчер",
+            "Кассир"});
+            this.comboBox1.Location = new System.Drawing.Point(418, 215);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(145, 21);
+            this.comboBox1.TabIndex = 28;
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Font = new System.Drawing.Font("Century Gothic", 14F);
+            this.label8.Location = new System.Drawing.Point(358, 214);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(52, 22);
+            this.label8.TabIndex = 29;
+            this.label8.Text = "Роль";
+            this.label8.Click += new System.EventHandler(this.label8_Click);
             // 
             // Form1
             // 
@@ -367,6 +394,8 @@
         private System.Windows.Forms.Button button1;
         private System.Windows.Forms.Button button8;
         private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.ComboBox comboBox1;
     }
 }
 

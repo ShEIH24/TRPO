@@ -43,33 +43,35 @@ namespace SystemInformation
             // Проверяем, существует ли файл с данными пользователей
             if (!File.Exists(UserDataFilePath))
             {
-                // Если файл не существует, создаем его
                 CreateUserDataFile();
             }
 
-            // Проверяем, существует ли пользователь с таким же именем
             string[] lines = File.ReadAllLines(UserDataFilePath);
             foreach (string line in lines)
             {
-                string[] parts = line.Split(',');
-                if (parts[1] == credentials.Username)
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                string[] parts = line.Split(',').Select(p => p.Trim()).ToArray();
+
+                if (parts.Length >= 2 && parts[1] == credentials.Username)
                 {
                     return false; // Пользователь с таким именем уже существует
                 }
             }
 
-            // Создаем новый профиль пользователя
             PersonProfile newUser = new PersonProfile
             {
                 ID = nextUserID++,
                 Username = credentials.Username,
-                Password = credentials.Password
+                Password = credentials.Password,
+                Role = credentials.Role
             };
 
-            // Записываем данные нового пользователя в файл
             using (StreamWriter writer = new StreamWriter(UserDataFilePath, true))
             {
-                writer.WriteLine($"{newUser.ID},{newUser.Username},{newUser.Password}");
+                // Добавляем роль в запись файла
+                writer.WriteLine($"{newUser.ID:D8},{newUser.Username},{newUser.Password},{newUser.Role}");
             }
 
             return true;
@@ -120,7 +122,8 @@ namespace SystemInformation
                     {
                         ID = int.Parse(parts[0]),
                         Username = parts[1],
-                        Password = parts[2]
+                        Password = parts[2],
+                        Role = parts[3]
                     };
                 }
             }
@@ -151,6 +154,7 @@ namespace SystemInformation
     {
         public string Username { get; set; }
         public string Password { get; set; }
+        public string Role { get; set; }
     }
 
     public class PersonProfile
@@ -158,6 +162,7 @@ namespace SystemInformation
         public int ID { get; set; }
         public string Username { get; set; }
         public string Password { get; set; }
+        public string Role { get; set; }
     }
 }
 
