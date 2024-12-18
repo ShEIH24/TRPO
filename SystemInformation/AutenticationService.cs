@@ -4,9 +4,7 @@ using System.Linq;
 
 namespace SystemInformation
 {
-    
-    /// Сервис аутентификации с улучшенной структурой и обработкой данных
-    
+    // Сервис аутентификации с улучшенной структурой и обработкой данных
     internal class AuthenticationService
     {
         // Константы для путей файлов вынесены наверх для удобства конфигурации
@@ -44,7 +42,7 @@ namespace SystemInformation
         }
 
 
-        /// Метод входа в систему с расширенной валидацией
+        // Метод входа в систему с расширенной валидацией
 
         public bool Login(string username, string password)
         {
@@ -56,9 +54,9 @@ namespace SystemInformation
             return FindUserByCredentials(username, password);
         }
 
-        /// <summary>
-        /// Валидация учетных данных 
-        /// </summary>
+        
+        // Валидация учетных данных 
+       
         private bool ValidateCredentials(string username, string password)
         {
             // Консолидация проверок входных данных
@@ -66,9 +64,9 @@ namespace SystemInformation
                    !string.IsNullOrWhiteSpace(password);
         }
 
-        /// <summary>
-        /// Поиск пользователя по учетным данным с безопасной обработкой
-        /// </summary>
+        
+        // Поиск пользователя по учетным данным с безопасной обработкой
+        
         private bool FindUserByCredentials(string username, string password)
         {
             // Создание файла, если он не существует (перемещение логики)
@@ -91,9 +89,9 @@ namespace SystemInformation
             }
         }
 
-        /// <summary>
-        /// Регистрация нового пользователя с расширенной проверкой
-        /// </summary>
+        
+        // Регистрация нового пользователя с расширенной проверкой
+        
         public bool Register(UserCredentials credentials)
         {
             EnsureUserDataFileExists();
@@ -105,9 +103,9 @@ namespace SystemInformation
             return SaveNewUser(credentials);
         }
 
-        /// <summary>
-        /// Проверка занятости имени пользователя
-        /// </summary>
+        
+        // Проверка занятости имени пользователя
+        
         private bool IsUsernameTaken(string username)
         {
             return File.ReadAllLines(UserDataFilePath)
@@ -115,9 +113,9 @@ namespace SystemInformation
                              line.Split(',').Select(p => p.Trim()).ToArray()[1] == username);
         }
 
-        /// <summary>
-        /// Сохранение нового пользователя
-        /// </summary>
+        
+        // Сохранение нового пользователя
+      
         private bool SaveNewUser(UserCredentials credentials)
         {
             int newUserID = _nextUserID++;
@@ -144,9 +142,9 @@ namespace SystemInformation
             return $"{user.ID:D8},{user.Username},{user.Password},{user.Role}";
         }
 
-        /// <summary>
-        /// Сброс пароля с расширенной обработкой
-        /// </summary>
+       
+        // Сброс пароля с расширенной обработкой
+
         public bool ResetPassword(string username, string newPassword)
         {
             EnsureUserDataFileExists();
@@ -176,9 +174,9 @@ namespace SystemInformation
             }
         }
 
-        /// <summary>
-        /// Получение профиля пользователя
-        /// </summary>
+
+        // Получение профиля пользователя
+
         public PersonProfile GetUserProfile(string username)
         {
             EnsureUserDataFileExists();
@@ -196,18 +194,17 @@ namespace SystemInformation
                 .FirstOrDefault();
         }
 
-        /// <summary>
-        /// Безопасное создание файла пользователей
-        /// </summary>
+
+        // Безопасное создание файла пользователей
+
         private void EnsureUserDataFileExists()
         {
             if (!File.Exists(UserDataFilePath))
                 File.Create(UserDataFilePath).Close();
         }
 
-        /// <summary>
-        /// Управление сохраненными учетными данными
-        /// </summary>
+        // Управление сохраненными учетными данными
+
         public void SaveRememberedCredentials(string username, string password)
         {
             ExecuteSafeFileOperation<bool>(() =>
@@ -217,9 +214,9 @@ namespace SystemInformation
             }, "Ошибка при сохранении учетных данных");
         }
 
-        /// <summary>
-        /// Получение сохраненных учетных данных
-        /// </summary>
+
+        // Получение сохраненных учетных данных
+
         public (string Username, string Password) GetRememberedCredentials()
         {
             return ExecuteSafeFileOperation(() =>
@@ -235,9 +232,8 @@ namespace SystemInformation
             }, "Ошибка при чтении сохраненных учетных данных");
         }
 
-        /// <summary>
-        /// Удаление сохраненных учетных данных
-        /// </summary>
+        // Удаление сохраненных учетных данных
+
         public void ClearRememberedCredentials()
         {
             ExecuteSafeFileOperation<bool>(() =>
@@ -248,9 +244,7 @@ namespace SystemInformation
             }, "Ошибка при удалении сохраненных учетных данных");
         }
 
-        /// <summary>
         /// Универсальный метод для безопасного выполнения операций с файлами
-        /// </summary>
         private T ExecuteSafeFileOperation<T>(Func<T> operation, string errorMessage)
         {
             try
@@ -264,9 +258,8 @@ namespace SystemInformation
             }
         }
 
-        /// <summary>
-        /// Централизованное логирование ошибок
-        /// </summary>
+        // Централизованное логирование ошибок
+
         private void LogError(string message, Exception ex)
         {
             // В реальном приложении рекомендуется использовать профессиональную систему логирования
