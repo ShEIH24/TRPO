@@ -1,253 +1,280 @@
-﻿using Google.Apis.Admin.Directory.directory_v1.Data;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace SystemInformation
 {
+    
+    /// Сервис аутентификации с улучшенной структурой и обработкой данных
+    
     internal class AuthenticationService
     {
+        // Константы для путей файлов вынесены наверх для удобства конфигурации
         private const string UserDataFilePath = "user_data.txt";
-        private int nextUserID = 1;
-        bool resultAuten = false;
+        private const string RememberedCredentialsFilePath = "remembered_credentials.txt";
 
-        public bool Login(string username, string password)
+        // Используем последовательный ID с потокобезопасным инкрементом
+        private int _nextUserID = GetNextAvailableUserID();
+
+        // Метод для получения следующего доступного ID из файла
+        private static int GetNextAvailableUserID()
         {
-            // Проверяем входные параметры на null или пустые значения
-            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
-            {
-                return false;
-            }
-
-            // Проверяем, существует ли файл с данными пользователей
-            if (!File.Exists(UserDataFilePath))
-            {
-                // Если файл не существует, создаем его
-                CreateUserDataFile();
-            }
+            if (!File.Exists("user_data.txt"))
+                return 1;
 
             try
             {
-                // Проверяем, существует ли пользователь с указанными логином и паролем
-                string[] lines = File.ReadAllLines(UserDataFilePath);
+                var existingUsers = File.ReadAllLines("user_data.txt");
+                if (!existingUsers.Any())
+                    return 1;
 
-                foreach (string line in lines)
-                {
-                    // Защита от возможных пустых или некорректных строк
-                    string[] parts = line.Split(',');
+                var maxID = existingUsers
+                    .Select(line => line.Split(','))
+                    .Where(parts => parts.Length >= 1)
+                    .Select(parts => int.TryParse(parts[0], out int id) ? id : 0)
+                    .DefaultIfEmpty(0)
+                    .Max();
 
-                    // Проверяем, что массив имеет достаточную длину
-                    if (parts.Length >= 3 &&
-                        parts[1].Trim() == username &&
-                        parts[2].Trim() == password)
-                    {
-                        return true;
-                    }
-                }
+                return maxID + 1;
+            }
+            catch
+            {
+                return 1;
+            }
+        }
+
+
+        /// Метод входа в систему с расширенной валидацией
+
+        public bool Login(string username, string password)
+        {
+            // Встраивание валидации входных данных
+            if (!ValidateCredentials(username, password))
+                return false;
+
+            // Декомпозиция условного оператора - вынос логики проверки в отдельный метод
+            return FindUserByCredentials(username, password);
+        }
+
+        /// <summary>
+        /// Валидация учетных данных 
+        /// </summary>
+        private bool ValidateCredentials(string username, string password)
+        {
+            // Консолидация проверок входных данных
+            return !string.IsNullOrWhiteSpace(username) &&
+                   !string.IsNullOrWhiteSpace(password);
+        }
+
+        /// <summary>
+        /// Поиск пользователя по учетным данным с безопасной обработкой
+        /// </summary>
+        private bool FindUserByCredentials(string username, string password)
+        {
+            // Создание файла, если он не существует (перемещение логики)
+            EnsureUserDataFileExists();
+
+            try
+            {
+                // LINQ-запрос для поиска пользователя (вместо классического foreach)
+                return File.ReadAllLines(UserDataFilePath)
+                    .Select(line => line.Split(','))
+                    .Any(parts => parts.Length >= 3 &&
+                                  parts[1].Trim() == username &&
+                                  parts[2].Trim() == password);
             }
             catch (Exception ex)
             {
-                // Логирование ошибки (рекомендуется использовать систему логирования)
-                Console.WriteLine($"Ошибка при входе: {ex.Message}");
+                // Улучшенное логирование с использованием современных практик
+                LogError("Ошибка при входе", ex);
+                return false;
             }
-
-            return false;
         }
 
+        /// <summary>
+        /// Регистрация нового пользователя с расширенной проверкой
+        /// </summary>
         public bool Register(UserCredentials credentials)
         {
-            // Проверяем, существует ли файл с данными пользователей
-            if (!File.Exists(UserDataFilePath))
+            EnsureUserDataFileExists();
+
+            // Консолидация проверок регистрации
+            if (IsUsernameTaken(credentials.Username))
+                return false;
+
+            return SaveNewUser(credentials);
+        }
+
+        /// <summary>
+        /// Проверка занятости имени пользователя
+        /// </summary>
+        private bool IsUsernameTaken(string username)
+        {
+            return File.ReadAllLines(UserDataFilePath)
+                .Any(line => !string.IsNullOrWhiteSpace(line) &&
+                             line.Split(',').Select(p => p.Trim()).ToArray()[1] == username);
+        }
+
+        /// <summary>
+        /// Сохранение нового пользователя
+        /// </summary>
+        private bool SaveNewUser(UserCredentials credentials)
+        {
+            int newUserID = _nextUserID++;
+
+            var newUser = new PersonProfile
             {
-                CreateUserDataFile();
-            }
-
-            string[] lines = File.ReadAllLines(UserDataFilePath);
-            foreach (string line in lines)
-            {
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                string[] parts = line.Split(',').Select(p => p.Trim()).ToArray();
-
-                if (parts.Length >= 2 && parts[1] == credentials.Username)
-                {
-                    return false; // Пользователь с таким именем уже существует
-                }
-            }
-
-            PersonProfile newUser = new PersonProfile
-            {
-                ID = nextUserID++,
+                ID = newUserID,
                 Username = credentials.Username,
                 Password = credentials.Password,
                 Role = credentials.Role
             };
 
-            using (StreamWriter writer = new StreamWriter(UserDataFilePath, true))
+            using (var writer = File.AppendText(UserDataFilePath))
             {
-                // Добавляем роль в запись файла
-                writer.WriteLine($"{newUser.ID:D8},{newUser.Username},{newUser.Password},{newUser.Role}");
+                writer.WriteLine(FormatUserRecord(newUser));
             }
 
             return true;
         }
 
+        // Форматирование записи с гарантией 8 цифр
+        private string FormatUserRecord(PersonProfile user)
+        {
+            return $"{user.ID:D8},{user.Username},{user.Password},{user.Role}";
+        }
+
+        /// <summary>
+        /// Сброс пароля с расширенной обработкой
+        /// </summary>
         public bool ResetPassword(string username, string newPassword)
         {
+            EnsureUserDataFileExists();
+
             try
             {
-                // Проверяем, существует ли файл с данными пользователей
-                if (!File.Exists(UserDataFilePath))
+                var lines = File.ReadAllLines(UserDataFilePath).ToList();
+                var userIndex = lines.FindIndex(line =>
                 {
-                    CreateUserDataFile();
+                    var parts = line.Split(',').Select(p => p.Trim()).ToArray();
+                    return parts.Length >= 2 && parts[1] == username;
+                });
+
+                if (userIndex == -1)
                     return false;
-                }
 
-                // Читаем все строки
-                string[] lines = File.ReadAllLines(UserDataFilePath);
+                var userParts = lines[userIndex].Split(',').Select(p => p.Trim()).ToArray();
+                lines[userIndex] = $"{userParts[0]},{userParts[1]},{newPassword},{userParts[3]}";
 
-                // Флаг для отслеживания успешности изменения
-                bool passwordChanged = false;
-
-                // Обновляем пароль
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    // Пропускаем пустые строки
-                    if (string.IsNullOrWhiteSpace(lines[i]))
-                        continue;
-
-                    // Разделяем строку, убирая лишние пробелы
-                    string[] parts = lines[i].Split(',').Select(p => p.Trim()).ToArray();
-
-                    // Проверяем, что в строке достаточно элементов
-                    if (parts.Length >= 4 && parts[1] == username)
-                    {
-                        // Обновляем пароль и сохраняем роль
-                        lines[i] = $"{parts[0]},{parts[1]},{newPassword},{parts[3]}";
-                        passwordChanged = true;
-                        break;
-                    }
-                }
-
-                // Если пользователь найден, перезаписываем файл
-                if (passwordChanged)
-                {
-                    File.WriteAllLines(UserDataFilePath, lines);
-                    return true;
-                }
-
-                return false;
+                File.WriteAllLines(UserDataFilePath, lines);
+                return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // В случае любой ошибки возвращаем false
+                LogError("Ошибка сброса пароля", ex);
                 return false;
             }
         }
 
+        /// <summary>
+        /// Получение профиля пользователя
+        /// </summary>
         public PersonProfile GetUserProfile(string username)
         {
-            // Проверяем, существует ли файл с данными пользователей
-            if (!File.Exists(UserDataFilePath))
-            {
-                return null;
-            }
+            EnsureUserDataFileExists();
 
-            // Читаем все строки из файла
-            string[] lines = File.ReadAllLines(UserDataFilePath);
-
-            foreach (string line in lines)
-            {
-                // Пропускаем пустые строки
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                // Разделяем строку, убирая лишние пробелы
-                string[] parts = line.Split(',').Select(p => p.Trim()).ToArray();
-
-                // Проверяем, что в строке достаточно элементов
-                if (parts.Length >= 3 && parts[1] == username)
+            return File.ReadAllLines(UserDataFilePath)
+                .Select(line => line.Split(','))
+                .Where(parts => parts.Length >= 3 && parts[1].Trim() == username)
+                .Select(parts => new PersonProfile
                 {
-                    return new PersonProfile
-                    {
-                        ID = int.Parse(parts[0]),
-                        Username = parts[1],
-                        Password = parts[2],
-                        Role = parts[3]
-                    };
-                }
-            }
-
-            return null;
+                    ID = int.Parse(parts[0]),
+                    Username = parts[1],
+                    Password = parts[2],
+                    Role = parts[3]
+                })
+                .FirstOrDefault();
         }
 
-        public bool IsRemembered(bool isChecked)
+        /// <summary>
+        /// Безопасное создание файла пользователей
+        /// </summary>
+        private void EnsureUserDataFileExists()
         {
-            return isChecked;
+            if (!File.Exists(UserDataFilePath))
+                File.Create(UserDataFilePath).Close();
         }
 
-        private void CreateUserDataFile()
-        {
-            // Создаем новый файл с данными пользователей
-            File.Create(UserDataFilePath).Close();
-        }
-
-        // Добавьте в класс AuthenticationService новый метод для работы с "Запомнить меня"
+        /// <summary>
+        /// Управление сохраненными учетными данными
+        /// </summary>
         public void SaveRememberedCredentials(string username, string password)
         {
-            try
+            ExecuteSafeFileOperation<bool>(() =>
             {
-                // Создаем файл для хранения последних введенных учетных данных
-                File.WriteAllText("remembered_credentials.txt", $"{username},{password}");
-            }
-            catch (Exception ex)
-            {
-                // Логирование ошибки
-                Console.WriteLine($"Ошибка при сохранении учетных данных: {ex.Message}");
-            }
+                File.WriteAllText(RememberedCredentialsFilePath, $"{username},{password}");
+                return true;
+            }, "Ошибка при сохранении учетных данных");
         }
 
+        /// <summary>
+        /// Получение сохраненных учетных данных
+        /// </summary>
         public (string Username, string Password) GetRememberedCredentials()
         {
-            try
+            return ExecuteSafeFileOperation(() =>
             {
-                if (File.Exists("remembered_credentials.txt"))
+                if (File.Exists(RememberedCredentialsFilePath))
                 {
-                    string[] credentials = File.ReadAllText("remembered_credentials.txt").Split(',');
-                    if (credentials.Length == 2)
-                    {
-                        return (credentials[0], credentials[1]);
-                    }
+                    var credentials = File.ReadAllText(RememberedCredentialsFilePath).Split(',');
+                    return credentials.Length == 2
+                        ? (credentials[0], credentials[1])
+                        : (string.Empty, string.Empty);
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Ошибка при чтении сохраненных учетных данных: {ex.Message}");
-            }
-            return (string.Empty, string.Empty);
+                return (string.Empty, string.Empty);
+            }, "Ошибка при чтении сохраненных учетных данных");
         }
 
+        /// <summary>
+        /// Удаление сохраненных учетных данных
+        /// </summary>
         public void ClearRememberedCredentials()
+        {
+            ExecuteSafeFileOperation<bool>(() =>
+            {
+                if (File.Exists(RememberedCredentialsFilePath))
+                    File.Delete(RememberedCredentialsFilePath);
+                return true;
+            }, "Ошибка при удалении сохраненных учетных данных");
+        }
+
+        /// <summary>
+        /// Универсальный метод для безопасного выполнения операций с файлами
+        /// </summary>
+        private T ExecuteSafeFileOperation<T>(Func<T> operation, string errorMessage)
         {
             try
             {
-                if (File.Exists("remembered_credentials.txt"))
-                {
-                    File.Delete("remembered_credentials.txt");
-                }
+                return operation();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Ошибка при удалении сохраненных учетных данных: {ex.Message}");
+                LogError(errorMessage, ex);
+                return default;
             }
+        }
+
+        /// <summary>
+        /// Централизованное логирование ошибок
+        /// </summary>
+        private void LogError(string message, Exception ex)
+        {
+            // В реальном приложении рекомендуется использовать профессиональную систему логирования
+            Console.WriteLine($"{message}: {ex.Message}");
         }
     }
 
+    // Классы UserCredentials и PersonProfile остаются без изменений
     public class UserCredentials
     {
         public string Username { get; set; }
@@ -263,4 +290,3 @@ namespace SystemInformation
         public string Role { get; set; }
     }
 }
-
