@@ -143,49 +143,6 @@ namespace SystemInformation
                 _logEntries.RemoveAll(log => log.Timestamp < DateTime.Now.AddDays(-daysToKeep));
             }
         }
-
-        // Вспомогательный класс для представления записи в логе
-        public class LogEntry
-        {
-            // Временная метка события
-            public DateTime Timestamp { get; set; }
-
-            // Тип события
-            public LogType Type { get; set; }
-
-            // Сообщение о событии
-            public string Message { get; set; }
-
-            // Пользователь, связанный с событием (может быть null)
-            public PersonProfile User { get; set; }
-        }
-
-        // Перечисление типов логов
-        public enum LogType
-        {
-            // События входа в систему
-            Login,
-            // События выхода из системы
-            Logout,
-            // Изменение статуса поезда
-            TrainStatusChange,
-            // Действия пользователя
-            UserAction,
-            // Системные ошибки
-            SystemError,
-            // Информационные сообщения
-            Information
-        }
-
-        // Перечисление ролей пользователей
-        public enum UserRole
-        {
-            Passenger,
-            Administrator,
-            Dispatcher,
-            Support,
-            Manager
-        }
     }
 }
 */

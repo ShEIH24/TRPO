@@ -17,6 +17,12 @@ namespace SystemInformation
 
         public bool Login(string username, string password)
         {
+            // Проверяем входные параметры на null или пустые значения
+            if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
+            {
+                return false;
+            }
+
             // Проверяем, существует ли файл с данными пользователей
             if (!File.Exists(UserDataFilePath))
             {
@@ -24,18 +30,32 @@ namespace SystemInformation
                 CreateUserDataFile();
             }
 
-            // Проверяем, существует ли пользователь с указанными логином и паролем
-            string[] lines = File.ReadAllLines(UserDataFilePath);
-            
-            foreach (string line in lines)
+            try
             {
-                string[] parts = line.Split(',');
-                if (parts[1] == username && parts[2] == password)
+                // Проверяем, существует ли пользователь с указанными логином и паролем
+                string[] lines = File.ReadAllLines(UserDataFilePath);
+
+                foreach (string line in lines)
                 {
-                    return resultAuten = true;
+                    // Защита от возможных пустых или некорректных строк
+                    string[] parts = line.Split(',');
+
+                    // Проверяем, что массив имеет достаточную длину
+                    if (parts.Length >= 3 &&
+                        parts[1].Trim() == username &&
+                        parts[2].Trim() == password)
+                    {
+                        return true;
+                    }
                 }
             }
-            return resultAuten;
+            catch (Exception ex)
+            {
+                // Логирование ошибки (рекомендуется использовать систему логирования)
+                Console.WriteLine($"Ошибка при входе: {ex.Message}");
+            }
+
+            return false;
         }
 
         public bool Register(UserCredentials credentials)
@@ -77,29 +97,57 @@ namespace SystemInformation
             return true;
         }
 
-        public bool ResetPassword(string username)
+        public bool ResetPassword(string username, string newPassword)
         {
-            // Проверяем, существует ли файл с данными пользователей
-            if (!File.Exists(UserDataFilePath))
+            try
             {
-                // Если файл не существует, создаем его
-                CreateUserDataFile();
-            }
-
-            // Проверяем, существует ли пользователь с указанным логином
-            string[] lines = File.ReadAllLines(UserDataFilePath);
-            for (int i = 0; i < lines.Length; i++)
-            {
-                string[] parts = lines[i].Split(',');
-                if (parts[1] == username)
+                // Проверяем, существует ли файл с данными пользователей
+                if (!File.Exists(UserDataFilePath))
                 {
-                    // Обновляем пароль пользователя
-                    lines[i] = $"{parts[0]},{parts[1]},{GetNewPassword()}";
+                    CreateUserDataFile();
+                    return false;
+                }
+
+                // Читаем все строки
+                string[] lines = File.ReadAllLines(UserDataFilePath);
+
+                // Флаг для отслеживания успешности изменения
+                bool passwordChanged = false;
+
+                // Обновляем пароль
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    // Пропускаем пустые строки
+                    if (string.IsNullOrWhiteSpace(lines[i]))
+                        continue;
+
+                    // Разделяем строку, убирая лишние пробелы
+                    string[] parts = lines[i].Split(',').Select(p => p.Trim()).ToArray();
+
+                    // Проверяем, что в строке достаточно элементов
+                    if (parts.Length >= 4 && parts[1] == username)
+                    {
+                        // Обновляем пароль и сохраняем роль
+                        lines[i] = $"{parts[0]},{parts[1]},{newPassword},{parts[3]}";
+                        passwordChanged = true;
+                        break;
+                    }
+                }
+
+                // Если пользователь найден, перезаписываем файл
+                if (passwordChanged)
+                {
                     File.WriteAllLines(UserDataFilePath, lines);
                     return true;
                 }
+
+                return false;
             }
-            return false;
+            catch (Exception)
+            {
+                // В случае любой ошибки возвращаем false
+                return false;
+            }
         }
 
         public PersonProfile GetUserProfile(string username)
@@ -107,16 +155,23 @@ namespace SystemInformation
             // Проверяем, существует ли файл с данными пользователей
             if (!File.Exists(UserDataFilePath))
             {
-                // Если файл не существует, создаем его
-                CreateUserDataFile();
+                return null;
             }
 
-            // Ищем профиль пользователя по имени
+            // Читаем все строки из файла
             string[] lines = File.ReadAllLines(UserDataFilePath);
+
             foreach (string line in lines)
             {
-                string[] parts = line.Split(',');
-                if (parts[1] == username)
+                // Пропускаем пустые строки
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                // Разделяем строку, убирая лишние пробелы
+                string[] parts = line.Split(',').Select(p => p.Trim()).ToArray();
+
+                // Проверяем, что в строке достаточно элементов
+                if (parts.Length >= 3 && parts[1] == username)
                 {
                     return new PersonProfile
                     {
@@ -136,17 +191,60 @@ namespace SystemInformation
             return isChecked;
         }
 
-        private string GetNewPassword()
-        {
-            // Реализуйте логику для получения нового пароля от пользователя
-            // Например, с помощью окна ввода данных
-            return "newpassword";
-        }
-
         private void CreateUserDataFile()
         {
             // Создаем новый файл с данными пользователей
             File.Create(UserDataFilePath).Close();
+        }
+
+        // Добавьте в класс AuthenticationService новый метод для работы с "Запомнить меня"
+        public void SaveRememberedCredentials(string username, string password)
+        {
+            try
+            {
+                // Создаем файл для хранения последних введенных учетных данных
+                File.WriteAllText("remembered_credentials.txt", $"{username},{password}");
+            }
+            catch (Exception ex)
+            {
+                // Логирование ошибки
+                Console.WriteLine($"Ошибка при сохранении учетных данных: {ex.Message}");
+            }
+        }
+
+        public (string Username, string Password) GetRememberedCredentials()
+        {
+            try
+            {
+                if (File.Exists("remembered_credentials.txt"))
+                {
+                    string[] credentials = File.ReadAllText("remembered_credentials.txt").Split(',');
+                    if (credentials.Length == 2)
+                    {
+                        return (credentials[0], credentials[1]);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при чтении сохраненных учетных данных: {ex.Message}");
+            }
+            return (string.Empty, string.Empty);
+        }
+
+        public void ClearRememberedCredentials()
+        {
+            try
+            {
+                if (File.Exists("remembered_credentials.txt"))
+                {
+                    File.Delete("remembered_credentials.txt");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Ошибка при удалении сохраненных учетных данных: {ex.Message}");
+            }
         }
     }
 

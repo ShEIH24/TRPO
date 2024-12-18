@@ -43,6 +43,8 @@
             this.button2 = new System.Windows.Forms.Button();
             this.button1 = new System.Windows.Forms.Button();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.label8 = new System.Windows.Forms.Label();
+            this.comboBox1 = new System.Windows.Forms.ComboBox();
             this.button8 = new System.Windows.Forms.Button();
             this.label7 = new System.Windows.Forms.Label();
             this.label4 = new System.Windows.Forms.Label();
@@ -52,8 +54,6 @@
             this.label6 = new System.Windows.Forms.Label();
             this.button6 = new System.Windows.Forms.Button();
             this.button7 = new System.Windows.Forms.Button();
-            this.comboBox1 = new System.Windows.Forms.ComboBox();
-            this.label8 = new System.Windows.Forms.Label();
             this.tabControl1.SuspendLayout();
             this.tabPage1.SuspendLayout();
             this.tabPage2.SuspendLayout();
@@ -112,6 +112,7 @@
             this.checkBox2.TabIndex = 22;
             this.checkBox2.Text = "С политикиой конфидециальности ознакомлен";
             this.checkBox2.UseVisualStyleBackColor = true;
+            this.checkBox2.CheckedChanged += new System.EventHandler(this.checkBox2_CheckedChanged);
             // 
             // button4
             // 
@@ -237,6 +238,29 @@
             this.tabPage2.Text = "tabPage2";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Font = new System.Drawing.Font("Century Gothic", 14F);
+            this.label8.Location = new System.Drawing.Point(358, 214);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(52, 22);
+            this.label8.TabIndex = 29;
+            this.label8.Text = "Роль";
+            this.label8.Click += new System.EventHandler(this.label8_Click);
+            // 
+            // comboBox1
+            // 
+            this.comboBox1.FormattingEnabled = true;
+            this.comboBox1.Items.AddRange(new object[] {
+            "Администратор",
+            "Диспетчер",
+            "Кассир"});
+            this.comboBox1.Location = new System.Drawing.Point(418, 215);
+            this.comboBox1.Name = "comboBox1";
+            this.comboBox1.Size = new System.Drawing.Size(145, 21);
+            this.comboBox1.TabIndex = 28;
+            // 
             // button8
             // 
             this.button8.Font = new System.Drawing.Font("Century Gothic", 10F);
@@ -326,29 +350,6 @@
             this.button7.Text = "Выход";
             this.button7.UseVisualStyleBackColor = true;
             this.button7.Click += new System.EventHandler(this.button7_Click);
-            // 
-            // comboBox1
-            // 
-            this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Items.AddRange(new object[] {
-            "Администратор",
-            "Диспетчер",
-            "Кассир"});
-            this.comboBox1.Location = new System.Drawing.Point(418, 215);
-            this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(145, 21);
-            this.comboBox1.TabIndex = 28;
-            // 
-            // label8
-            // 
-            this.label8.AutoSize = true;
-            this.label8.Font = new System.Drawing.Font("Century Gothic", 14F);
-            this.label8.Location = new System.Drawing.Point(358, 214);
-            this.label8.Name = "label8";
-            this.label8.Size = new System.Drawing.Size(52, 22);
-            this.label8.TabIndex = 29;
-            this.label8.Text = "Роль";
-            this.label8.Click += new System.EventHandler(this.label8_Click);
             // 
             // Form1
             // 

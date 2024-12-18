@@ -23,6 +23,18 @@ namespace SystemInformation
 
         private void button3_Click(object sender, EventArgs e)
         {
+            // Проверяем согласие с политикой конфиденциальности
+            if (!checkBox2.Checked)
+            {
+                MessageBox.Show(
+                    "Ознакомьтесь с политикой конфиденциальности",
+                    "Ошибка авторизации",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                return;
+            }
+
             string username = textBox1.Text;
             string password = textBox2.Text;
 
@@ -59,7 +71,26 @@ namespace SystemInformation
 
         private void checkBox2_CheckedChanged(object sender, EventArgs e)
         {
+            checkBox1.Checked = false;
+            // Если галочка не установлена
+            if (!checkBox2.Checked)
+            {
+                // Показываем сообщение об ошибке
+                MessageBox.Show(
+                    "Ознакомьтесь с политикой конфиденциальности",
+                    "Ошибка авторизации",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
 
+                // Блокируем кнопку входа
+                button3.Enabled = false;
+            }
+            else
+            {
+                // Разблокируем кнопку входа, если другие условия позволяют
+                button3.Enabled = true;
+            }
         }
 
         private void textBox1_TextChanged(object sender, EventArgs e)
@@ -74,34 +105,71 @@ namespace SystemInformation
 
         private void button4_Click(object sender, EventArgs e)
         {
+            // Запрос логина
             string username = Interaction.InputBox("Введите логин для восстановления пароля:", "Восстановление пароля");
 
-            if (authService.ResetPassword(username))
+            if (string.IsNullOrWhiteSpace(username))
             {
-                // Получаем профиль пользователя
+                MessageBox.Show("Логин не может быть пустым.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            try
+            {
+                // Проверяем существование пользователя
                 PersonProfile user = authService.GetUserProfile(username);
 
-                // Логируем смену пароля
-                LogEntry.Log(
-                    user,
-                    LogType.EmployeeAction,
-                    "Password Reset",
-                    LogEntry.STATUS_CHANGE_OPERATION
-                );
+                if (user != null)
+                {
+                    // Запрос нового пароля
+                    string newPassword = Interaction.InputBox("Введите новый пароль:", "Восстановление пароля");
 
-                MessageBox.Show("Пароль успешно изменен.");
-                // Здесь можно добавить логику для перехода к следующей форме
+                    if (string.IsNullOrWhiteSpace(newPassword))
+                    {
+                        MessageBox.Show("Пароль не может быть пустым.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    // Попытка сброса пароля
+                    if (authService.ResetPassword(username, newPassword))
+                    {
+                        // Логируем смену пароля
+                        LogEntry.Log(
+                            user,
+                            LogType.EmployeeAction,
+                            "Password Reset",
+                            LogEntry.STATUS_CHANGE_OPERATION
+                        );
+
+                        MessageBox.Show("Пароль успешно изменен.", "Успех", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Не удалось изменить пароль.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+                else
+                {
+                    // Логируем неудачную попытку сброса пароля
+                    LogEntry.Log(
+                        null,
+                        LogType.Error,
+                        $"An unsuccessful attempt to recover the user's password {username}"
+                    );
+
+                    MessageBox.Show("Пользователь не найден.", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // Логируем неудачную попытку сброса пароля
+                // Логируем системную ошибку
                 LogEntry.Log(
                     null,
                     LogType.Error,
-                    $"An unsuccessful attempt to reset the user's password {username}"
+                    $"System error during password recovery: {ex.Message}"
                 );
 
-                MessageBox.Show("Пользователь не найден.");
+                MessageBox.Show($"Произошла системная ошибка: {ex.Message}", "Ошибка", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -113,7 +181,16 @@ namespace SystemInformation
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            // Проверяем наличие сохраненных credentials
+            var (savedUsername, savedPassword) = authService.GetRememberedCredentials();
 
+            if (!string.IsNullOrWhiteSpace(savedUsername) &&
+                !string.IsNullOrWhiteSpace(savedPassword))
+            {
+                textBox1.Text = savedUsername;
+                textBox2.Text = savedPassword;
+                checkBox1.Checked = true;
+            }
         }
 
         private void textBox4_TextChanged(object sender, EventArgs e)
@@ -169,15 +246,31 @@ namespace SystemInformation
 
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
-            bool isRemembered = authService.IsRemembered(checkBox1.Checked);
-            if (isRemembered)
+            if (checkBox1.Checked)
             {
-                // Здесь можно добавить логику для автозаполнения полей логина и пароля
-                textBox1.Text = "savedUsername";
-                textBox2.Text = "savedPassword";
+                // Сохраняем текущие credentials, если они не пустые
+                if (!string.IsNullOrWhiteSpace(textBox1.Text) &&
+                    !string.IsNullOrWhiteSpace(textBox2.Text))
+                {
+                    // Проверяем корректность логина
+                    if (authService.Login(textBox1.Text, textBox2.Text))
+                    {
+                        authService.SaveRememberedCredentials(textBox1.Text, textBox2.Text);
+                        // Логируем действие
+                        PersonProfile currentUser = authService.GetUserProfile(textBox1.Text);
+                        LogEntry.Log(currentUser, LogType.Information, "The 'Remember Me' option is enabled'");
+                    }
+                    else
+                    {
+                        MessageBox.Show("Неверные учетные данные. Авторизация не выполнена.");
+                        checkBox1.Checked = false;
+                    }
+                }
             }
             else
             {
+                // Очищаем сохраненные credentials
+                authService.ClearRememberedCredentials();
                 textBox1.Text = "";
                 textBox2.Text = "";
             }
